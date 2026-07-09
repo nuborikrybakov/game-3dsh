@@ -801,7 +801,16 @@
         return { x, y, w: 30, h: 15, power };
       }
       function createOrb(x, y, power) {
-        return { x, y, w: 24, h: 24, power };
+        // x, y - координаты верхнего края клетки (30x30)
+        return {
+          x: x + 3, // левый верхний угол орба (центрирован)
+          y: y + 3, // левый верхний угол орба
+          cx: x + 15, // центр орба
+          cy: y + 15, // центр орба
+          w: 24,
+          h: 24,
+          power,
+        };
       }
       function createJumpTrigger(x, y, power) {
         return { x, y, w: 30, h: 30, power, used: false };
@@ -1882,7 +1891,7 @@
         }
 
         const snapX = Math.floor(mouseWorldX / 30) * 30;
-        const snapY = Math.floor(mouseWorldY / 30) * 30;
+        const snapY = Math.floor(mouseWorldY / 30) * 30 + 30;
         const psx = snapX - editorCameraX;
         if (psx > -50 && psx < canvas.width + 50) {
           ctx.globalAlpha = 0.5;
@@ -2206,7 +2215,7 @@
           }
         } else if (gameState === 'editor') {
           const sx = Math.floor(wx / 30) * 30,
-            sy = Math.floor(wy / 30) * 30;
+            sy = Math.floor(wy / 30) * 30 + 30;
           if (deleteMode || e.button === 2) {
             obstacles = obstacles.filter((o) => Math.abs(o.x - sx) > 15 || Math.abs(o.y - sy) > 15);
             portals = portals.filter((p) => Math.abs(p.x - sx) > 15 || Math.abs(p.y - sy) > 30);
@@ -2214,7 +2223,7 @@
               (b) => Math.abs(b.x - sx) > 15 || Math.abs(b.y - sy) > 30,
             );
             jumpPads = jumpPads.filter((j) => Math.abs(j.x - sx) > 15 || Math.abs(j.y - sy) > 15);
-            orbs = orbs.filter((o) => Math.abs(o.x - sx) > 15 || Math.abs(o.y - sy) > 15);
+            orbs = orbs.filter((o) => Math.hypot(o.cx - wx, o.cy - wy) >= 20);
             jumpTriggers = jumpTriggers.filter(
               (j) => Math.abs(j.x - sx) > 15 || Math.abs(j.y - sy) > 15,
             );
@@ -2230,7 +2239,7 @@
             }
             if (!clickedObject)
               for (let orb of orbs) {
-                if (Math.abs(orb.x - sx) < 15 && Math.abs(orb.y - sy) < 15) {
+                if (Math.hypot(orb.cx - wx, orb.cy - wy) < 20) {
                   clickedObject = orb;
                   clickedType = 'orb';
                   break;
@@ -2258,8 +2267,8 @@
                 if (!jumpPads.some((j) => Math.abs(j.x - sx) < 15))
                   jumpPads.push(createJumpPad(sx, sy, JUMP_POWER));
               } else if (selectedObject === 'orb') {
-                if (!orbs.some((o) => Math.abs(o.x - sx) < 15))
-                  orbs.push(createOrb(sx + 3, sy - 15, JUMP_POWER));
+                if (!orbs.some((o) => Math.abs(o.cx - sx) < 15 || Math.abs(o.cy - sy) < 15))
+                  orbs.push(createOrb(sx, sy - 30, JUMP_POWER));
               } else if (selectedObject === 'jump_trigger') {
                 if (!jumpTriggers.some((j) => Math.abs(j.x - sx) < 15))
                   jumpTriggers.push(createJumpTrigger(sx, sy, JUMP_POWER));
