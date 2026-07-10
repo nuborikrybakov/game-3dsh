@@ -131,7 +131,8 @@
       #customizePanel,
       #levelsPanel,
       #editorMenuPanel,
-      #namePanel {
+      #namePanel,
+      #transparentColorPanel {
         position: absolute;
         top: 50%;
         left: 50%;
@@ -159,6 +160,9 @@
       #namePanel {
         border-color: #00ff66;
         min-width: 300px;
+      }
+      #transparentColorPanel {
+        border-color: #aaa;
       }
       #settingsPanel h2 {
         margin: 0 0 20px;
@@ -609,6 +613,61 @@
       </div>
     </div>
 
+    <div id="transparentColorPanel">
+      <h2 style="text-align: center; color: #aaa">🔲 Цвет прозрачного блока</h2>
+      <p style="text-align: center; margin: 10px 0; opacity: 0.8">Выбери цвет и прозрачность:</p>
+
+      <div class="color-buttons">
+        <div
+          class="color-btn active"
+          style="background: rgba(255, 255, 255, 0.3)"
+          onclick="selectTransparentColor('rgba(255,255,255,0.3)', this)"
+        ></div>
+        <div
+          class="color-btn"
+          style="background: rgba(0, 0, 0, 0.5)"
+          onclick="selectTransparentColor('rgba(0,0,0,0.5)', this)"
+        ></div>
+        <div
+          class="color-btn"
+          style="background: rgba(255, 0, 0, 0.3)"
+          onclick="selectTransparentColor('rgba(255,0,0,0.3)', this)"
+        ></div>
+        <div
+          class="color-btn"
+          style="background: rgba(0, 255, 0, 0.3)"
+          onclick="selectTransparentColor('rgba(0,255,0,0.3)', this)"
+        ></div>
+        <div
+          class="color-btn"
+          style="background: rgba(0, 0, 255, 0.3)"
+          onclick="selectTransparentColor('rgba(0,0,255,0.3)', this)"
+        ></div>
+        <div
+          class="color-btn"
+          style="background: rgba(255, 255, 0, 0.3)"
+          onclick="selectTransparentColor('rgba(255,255,0,0.3)', this)"
+        ></div>
+      </div>
+
+      <div class="setting-row" style="margin-top: 15px">
+        <label>Прозрачность:</label>
+        <input
+          type="range"
+          id="transparencySlider"
+          min="0.01"
+          max="0.99"
+          step="0.1"
+          value="0.3"
+          style="width: 150px"
+        />
+      </div>
+
+      <div class="settings-btns">
+        <button class="btn btn-back" onclick="closeTransparentColorPanel()">Закрыть</button>
+      </div>
+    </div>
+
     <script>
       const canvas = document.getElementById('gameCanvas');
       const ctx = canvas.getContext('2d');
@@ -626,6 +685,7 @@
       const namePanel = document.getElementById('namePanel');
       const previewCanvas = document.getElementById('previewCanvas');
       const previewCtx = previewCanvas.getContext('2d');
+      const transparentColorPanel = document.getElementById('transparentColorPanel');
 
       let BASE_SPEED = 375;
       let GRAVITY = 1800;
@@ -800,6 +860,7 @@
       let mouseJustPressed = false;
       let editingObject = null;
       let editingObjectType = null;
+      let transparentColor = 'rgba(255,255,255,0.3)';
 
       function createObstacle(type, x, y, h) {
         return { x, y, w: 30, h, type };
@@ -1094,7 +1155,9 @@
               jumpTriggers.push(createJumpTrigger(item.d, y, item.power || -700));
             } else {
               let h = item.h || (item.type === 'block_high' ? 60 : 30);
-              obstacles.push(createObstacle(item.type, item.d, y, h));
+              const obs = createObstacle(item.type, item.d, y, h);
+              if (item.color) obs.color = item.color; // ← Загружаем цвет
+              obstacles.push(obs);
             }
           });
         }
@@ -1140,7 +1203,13 @@
       function confirmSaveLevel() {
         const name = document.getElementById('levelNameInput').value.trim() || 'Мой уровень';
         const pattern = [
-          ...obstacles.map((o) => ({ d: o.x, y: o.y, type: o.type, h: o.h })),
+          ...obstacles.map((o) => ({
+            d: o.x,
+            y: o.y,
+            type: o.type,
+            h: o.h,
+            color: o.color,
+          })),
           ...portals.map((p) => ({ d: p.x, y: p.y, type: 'ship_portal' })),
           ...ballPortals.map((b) => ({ d: b.x, y: b.y, type: 'ball_portal' })),
           ...jumpPads.map((j) => ({ d: j.x, y: j.y, type: 'jump_pad', power: j.power })),
@@ -1171,7 +1240,13 @@
         )
           return;
         const pattern = [
-          ...obstacles.map((o) => ({ d: o.x, y: o.y, type: o.type, h: o.h })),
+          ...obstacles.map((o) => ({
+            d: o.x,
+            y: o.y,
+            type: o.type,
+            h: o.h,
+            color: o.color,
+          })),
           ...portals.map((p) => ({ d: p.x, y: p.y, type: 'ship_portal' })),
           ...ballPortals.map((b) => ({ d: b.x, y: b.y, type: 'ball_portal' })),
           ...jumpPads.map((j) => ({ d: j.x, y: j.y, type: 'jump_pad', power: j.power })),
@@ -1230,6 +1305,72 @@
         editingObject = null;
         editingObjectType = null;
       }
+
+      function openTransparentColorPanel() {
+        transparentColorPanel.style.display = 'block';
+
+        // Если редактируем существующий блок - используем его цвет
+        if (editingObject && editingObject.color) {
+          transparentColor = editingObject.color;
+        }
+
+        // Устанавливаем текущую прозрачность в слайдер
+        const match = transparentColor.match(/rgba?\([\d, ]+,\s*([\d.]+)\)/);
+        if (match) {
+          document.getElementById('transparencySlider').value = match[1];
+        }
+
+        // Подсвечиваем активную кнопку цвета
+        document.querySelectorAll('#transparentColorPanel .color-btn').forEach((btn) => {
+          btn.classList.remove('active');
+          const btnColor = btn.style.background;
+          if (btnColor && transparentColor.includes(btnColor.match(/rgb\([\d, ]+\)/)?.[0] || '')) {
+            btn.classList.add('active');
+          }
+        });
+      }
+
+      function closeTransparentColorPanel() {
+        transparentColorPanel.style.display = 'none';
+        editingObject = null;
+        editingObjectType = null;
+      }
+
+      function selectTransparentColor(color, btn) {
+        const alpha = document.getElementById('transparencySlider').value;
+        const baseColor = color.match(/^rgba?\(([\d, ]+)\)/);
+
+        if (baseColor) {
+          transparentColor = `rgba(${baseColor[1]}, ${alpha})`;
+        } else {
+          transparentColor = color;
+        }
+
+        // Обновляем редактируемый объект если есть
+        if (editingObject) {
+          editingObject.color = transparentColor;
+        }
+
+        // Обновляем активную кнопку
+        document
+          .querySelectorAll('#transparentColorPanel .color-btn')
+          .forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+
+      document.getElementById('transparencySlider').addEventListener('input', function () {
+        const alpha = this.value;
+        const match = transparentColor.match(/^rgba?\(([\d, ]+),\s*[\d.]+\)/);
+
+        if (match) {
+          transparentColor = `rgba(${match[1]}, ${alpha})`;
+
+          // Обновляем редактируемый объект если есть
+          if (editingObject) {
+            editingObject.color = transparentColor;
+          }
+        }
+      });
 
       function applyObjectPower(level) {
         if (!editingObject) return;
@@ -1462,7 +1603,9 @@
             jumpTriggers.push(createJumpTrigger(xPos, yPos, item.power || -700));
           } else {
             let h = item.h || (item.type === 'block_high' ? 60 : 30);
-            obstacles.push(createObstacle(item.type, xPos, yPos, h));
+            const obs = createObstacle(item.type, xPos, yPos, h);
+            if (item.color) obs.color = item.color; // ← Загружаем цвет!
+            obstacles.push(obs);
           }
           spawnedUpTo++;
         }
@@ -1814,7 +1957,7 @@
               ctx.lineWidth = 2;
               ctx.strokeRect(sx, obs.y - obs.h, 30, obs.h);
             } else if (obs.type === 'transparent') {
-              ctx.fillStyle = 'rgba(255,255,255,0.3)';
+              ctx.fillStyle = obs.color || 'rgba(255,255,255,0.3)';
               ctx.fillRect(sx, obs.y - obs.h, 30, obs.h);
               ctx.strokeStyle = 'rgba(255,255,255,0.6)';
               ctx.lineWidth = 2;
@@ -1937,7 +2080,7 @@
             ctx.fillStyle = '#000000';
             ctx.fillRect(psx, snapY - 30, 30, 30);
           } else if (selectedObject === 'transparent') {
-            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillStyle = transparentColor;
             ctx.fillRect(psx, snapY - 30, 30, 30);
           } else if (selectedObject === 'ship_portal') {
             ctx.fillStyle = '#ff00ff';
@@ -2075,7 +2218,7 @@
             ctx.lineWidth = 2;
             ctx.strokeRect(obs.x, obs.y - obs.h, obs.w, obs.h);
           } else if (obs.type === 'transparent') {
-            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillStyle = obs.color || 'rgba(255,255,255,0.3)';
             ctx.fillRect(obs.x, obs.y - obs.h, obs.w, obs.h);
             ctx.strokeStyle = 'rgba(255,255,255,0.6)';
             ctx.lineWidth = 2;
@@ -2274,9 +2417,26 @@
                   break;
                 }
               }
+            if (!clickedObject) {
+              for (let obs of obstacles) {
+                if (
+                  obs.type === 'transparent' &&
+                  Math.abs(obs.x - sx) < 15 &&
+                  Math.abs(obs.y - sy) < 15
+                ) {
+                  clickedObject = obs;
+                  clickedType = 'transparent';
+                  break;
+                }
+              }
+            }
 
             if (clickedObject) {
-              openObjectSettings(clickedObject, clickedType);
+              if (clickedType === 'transparent') {
+                openTransparentColorPanel();
+              } else {
+                openObjectSettings(clickedObject, clickedType);
+              }
             } else {
               if (selectedObject === 'ship_portal') {
                 if (!portals.some((p) => Math.abs(p.x - sx) < 15))
@@ -2294,8 +2454,13 @@
                 if (!jumpTriggers.some((j) => Math.abs(j.x - sx) < 15))
                   jumpTriggers.push(createJumpTrigger(sx, sy, JUMP_POWER));
               } else {
-                if (!obstacles.some((o) => Math.abs(o.x - sx) < 15 && Math.abs(o.y - sy) < 15))
-                  obstacles.push(createObstacle(selectedObject, sx, sy, 30));
+                if (!obstacles.some((o) => Math.abs(o.x - sx) < 15 && Math.abs(o.y - sy) < 15)) {
+                  const obs = createObstacle(selectedObject, sx, sy, 30);
+                  if (selectedObject === 'transparent') {
+                    obs.color = transparentColor;
+                  }
+                  obstacles.push(obs);
+                }
               }
             }
           }
