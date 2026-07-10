@@ -902,21 +902,29 @@
           context.fillRect(-8, -5, 6, 6);
           context.fillRect(3, -5, 6, 6);
         } else if (icon === 'ball') {
-          context.beginPath();
-          context.arc(0, 0, s, 0, Math.PI * 2);
-          context.fill();
-          context.stroke();
+          // Квадратная основа
+          context.fillRect(-s, -s, size, size);
+          context.strokeRect(-s, -s, size, size);
+
+          // Внутренняя рамка
           context.strokeStyle = 'rgba(255,255,255,0.4)';
           context.lineWidth = 1.5;
-          context.beginPath();
-          context.arc(0, 0, s - 4, 0, Math.PI * 2);
-          context.stroke();
+          context.strokeRect(-s + 3, -s + 3, size - 6, size - 6);
+
+          // Горизонтальная полоса через центр (как экватор)
+          context.fillStyle = 'rgba(0,0,0,0.3)';
+          context.fillRect(-s + 3, -3, size - 6, 6);
+
+          // Вертикальная полоса через центр (как меридиан)
+          context.fillRect(-3, -s + 3, 6, size - 6);
+
+          // Глаза
           context.fillStyle = '#fff';
-          context.fillRect(-7, -5, 6, 6);
-          context.fillRect(2, -5, 6, 6);
+          context.fillRect(-8, -10, 6, 6);
+          context.fillRect(2, -10, 6, 6);
           context.fillStyle = '#000';
-          context.fillRect(-5, -3, 4, 4);
-          context.fillRect(4, -3, 4, 4);
+          context.fillRect(-6, -8, 4, 4);
+          context.fillRect(4, -8, 4, 4);
         } else if (icon === 'ufo') {
           context.beginPath();
           context.ellipse(0, 5, s * 1.2, s * 0.4, 0, 0, Math.PI * 2);
